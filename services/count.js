@@ -1,10 +1,22 @@
 const config = require('config');
 const indexName = config.get('elasticsearch.index_name');
 
-exports.count = (client, from, to, callback) => {
-    // TODO Compter le nombre d'anomalies entre deux dates
+exports.count = async (client, from, to, callback) => {
+    const response = await client.count({
+        index: indexName,
+        body: {
+            query: {
+                range: {
+                    "@timestamp": {
+                        "gte": from,
+                        "lte": to
+                    }
+                }
+            }
+        }
+    });
     callback({
-        count: 0
+        count: response.body.count
     })
 }
 
