@@ -11,8 +11,17 @@ async function run() {
     const client = new Client({ node: config.get('elasticsearch.uri') });
 
     // Création de l'indice
-    client.indices.create({ index: indexName }, (err, resp) => {
-        if (err) console.trace(err.message);
+    await client.indices.create({ index: indexName });
+
+    await client.indices.putMapping({
+        index: indexName,
+        body: {
+            properties: {
+                location: {
+                    type: "geo_point"
+                }
+            }
+        }
     });
 
     // Read CSV file
@@ -39,7 +48,6 @@ async function run() {
 
         })
         .on('end', async () => {
-            console.log(anomalies.length)
 
             const slicedAnomalies = chunkArray(anomalies, 20000);
 
@@ -82,7 +90,5 @@ function chunkArray(myArray, chunk_size) {
 
     return tempArray;
 }
-
-
 
 run().catch(console.error);
