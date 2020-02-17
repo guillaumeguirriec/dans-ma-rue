@@ -65,9 +65,28 @@ exports.statsByType = async (client, callback) => {
     callback(stat);
 }
 
-exports.statsByMonth = (client, callback) => {
-    // TODO Trouver le top 10 des mois avec le plus d'anomalies
-    callback([]);
+exports.statsByMonth = async (client, callback) => {
+    const response = await client.search({
+        index: indexName,
+        body: {
+            size: 0,
+            aggs: {
+                datesdeclaration: {
+                    terms: {
+                        field: "date_declaration.keyword",
+                        size: 10
+                    }
+                }
+            }
+        }
+    });
+    const stat = response.body.aggregations.datesdeclaration.buckets.map(element => {
+        return {
+            "month": element.key,
+            "count": element.doc_count
+        };
+    });
+    callback(stat);
 }
 
 exports.statsPropreteByArrondissement = (client, callback) => {

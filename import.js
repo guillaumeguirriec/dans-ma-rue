@@ -35,6 +35,7 @@ async function run() {
                 object_id: data.OBJECTID,
                 annee_declaration: data['ANNEE DECLARATION'],
                 mois_declaration: data['MOIS DECLARATION'],
+                date_declaration: formatDateDeclaration(data['ANNEE DECLARATION'], data['MOIS DECLARATION']),
                 type: data.TYPE,
                 sous_type: data.SOUSTYPE,
                 code_postal: data.CODE_POSTAL,
@@ -67,9 +68,9 @@ async function run() {
 // Fonction utilitaire permettant de formatter les données pour l'insertion "bulk" dans elastic
 function createBulkInsertQuery(anomalies) {
     const body = anomalies.reduce((acc, anomalie) => {
-        const { annee_declaration, mois_declaration, type, sous_type, code_postal, ville, arrondissement, prefixe, intervenant, conseil_de_quartier, location } = anomalie;
+        const { annee_declaration, mois_declaration, date_declaration, type, sous_type, code_postal, ville, arrondissement, prefixe, intervenant, conseil_de_quartier, location } = anomalie;
         acc.push({ index: { _index: indexName, _type: '_doc', _id: anomalie.object_id } });
-        acc.push({ '@timestamp': anomalie['@timestamp'], annee_declaration, mois_declaration, type, sous_type, code_postal, ville, arrondissement, prefixe, intervenant, conseil_de_quartier, location });
+        acc.push({ '@timestamp': anomalie['@timestamp'], annee_declaration, mois_declaration, date_declaration, type, sous_type, code_postal, ville, arrondissement, prefixe, intervenant, conseil_de_quartier, location });
         return acc
     }, []);
 
@@ -89,6 +90,13 @@ function chunkArray(myArray, chunk_size) {
     }
 
     return tempArray;
+}
+
+function formatDateDeclaration(annee, mois) {
+    if (mois.length === 1) {
+        mois = '0' + mois;
+    }
+    return `${mois}/${annee}`;
 }
 
 run().catch(console.error);
