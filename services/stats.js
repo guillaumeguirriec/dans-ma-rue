@@ -1,9 +1,27 @@
 const config = require('config');
 const indexName = config.get('elasticsearch.index_name');
 
-exports.statsByArrondissement = (client, callback) => {
-    // TODO Compter le nombre d'anomalies par arondissement
-    callback([]);
+exports.statsByArrondissement = async (client, callback) => {
+    const response = await client.search({
+        index: indexName,
+        body: {
+            size: 0,
+            aggs: {
+                arrondissements: {
+                    terms: {
+                        field: "arrondissement.keyword"
+                    }
+                }
+            }
+        }
+    });
+    const stat = response.body.aggregations.arrondissements.buckets.map(element => {
+        return {
+            "arrondissement": element.key,
+            "count": element.doc_count
+        };
+    });
+    callback(stat);
 }
 
 exports.statsByType = (client, callback) => {
