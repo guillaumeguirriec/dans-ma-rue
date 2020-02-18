@@ -10,9 +10,13 @@ async function run() {
     // Create Elasticsearch client
     const client = new Client({ node: config.get('elasticsearch.uri') });
 
+    // Suppression de l'indice
+    await client.indices.delete({ index: indexName });
+
     // Création de l'indice
     await client.indices.create({ index: indexName });
 
+    // Changement du mapping du champ location
     await client.indices.putMapping({
         index: indexName,
         body: {
@@ -50,17 +54,12 @@ async function run() {
         })
         .on('end', async () => {
 
-            const slicedAnomalies = chunkArray(anomalies, 20000);
-
-            for (let index = 0; index < slicedAnomalies.length; index++) {
-                try {
-                    await client.bulk(createBulkInsertQuery(slicedAnomalies[index]));
-                } catch (error) {
-                    console.error(error);
-                }
+            while (anomalies.length) {
+                await client.bulk(createBulkInsertQuery(anomalies.splice(0, 20000)));
             }
 
             await client.close();
+
             console.log(`Terminated!`);
         });
 }
@@ -77,21 +76,7 @@ function createBulkInsertQuery(anomalies) {
     return { body };
 };
 
-// helper (boilerplate stackoverflow)
-function chunkArray(myArray, chunk_size) {
-    var index = 0;
-    var arrayLength = myArray.length;
-    var tempArray = [];
-
-    for (index = 0; index < arrayLength; index += chunk_size) {
-        myChunk = myArray.slice(index, index + chunk_size);
-        // Do something if you want with the group
-        tempArray.push(myChunk);
-    }
-
-    return tempArray;
-}
-
+// helper to format date declaration
 function formatDateDeclaration(annee, mois) {
     if (mois.length === 1) {
         mois = '0' + mois;
