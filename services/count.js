@@ -9,7 +9,7 @@ exports.count = async (client, from, to, callback) => {
                 range: {
                     "@timestamp": {
                         "gte": from,
-                        "lte": to
+                        "lt": to
                     }
                 }
             }

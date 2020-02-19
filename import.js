@@ -3,6 +3,7 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const { Client } = require('@elastic/elasticsearch');
 const indexName = config.get('elasticsearch.index_name');
+const MAX_ANOMALIES = 20000;
 
 async function run() {
     let anomalies = [];
@@ -33,7 +34,7 @@ async function run() {
         .pipe(csv({
             separator: ';'
         }))
-        .on('data', (data) => {
+        .on('data', async (data) => {
             anomalies.push({
                 '@timestamp': data.DATEDECL,
                 object_id: data.OBJECTID,
@@ -51,11 +52,15 @@ async function run() {
                 location: data.geo_point_2d,
             });
 
+            if (anomalies.length === MAX_ANOMALIES) {
+                await client.bulk(createBulkInsertQuery(anomalies.splice(0, MAX_ANOMALIES)));
+            }
+
         })
         .on('end', async () => {
 
-            while (anomalies.length) {
-                await client.bulk(createBulkInsertQuery(anomalies.splice(0, 20000)));
+            if (anomalies.length) {
+                await client.bulk(createBulkInsertQuery(anomalies.splice(0, MAX_ANOMALIES)));
             }
 
             await client.close();
